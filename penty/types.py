@@ -8,6 +8,16 @@ def astype(ty):
     else:
         return ty
 
+
+def method_type(expected_ty):
+    def decorator(fun):
+        def wrapper(self_ty, *args, **kwargs):
+            if not issubclass(self_ty, expected_ty):
+                raise TypeError
+            return fun(self_ty, *args, **kwargs)
+        return wrapper
+    return decorator
+
 def resolve_base_attrs(attrs, registry):
     for base in attrs['__bases__'].__args__:
         for attr, value in registry[base.__args__[0]].items():
@@ -213,6 +223,7 @@ class TupleMeta(type):
     def __getitem__(self, args):
         if not isinstance(args, tuple):
             args = args,
+
         if args not in TupleMeta.cache:
             class LocalTuple(Tuple):
                 __args__ = args
@@ -244,6 +255,22 @@ class ListMeta(type):
 
 
 class List(list, metaclass=ListMeta):
+    pass
+
+
+class ListIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalListIterator(ListIterator):
+            __args__ = args,
+        return LocalListIterator
+
+    def __repr__(self):
+        sortedelts = sorted(map(str, self.__args__[0]))
+        return 'ListIterator[{{{}}}]'.format(', '.join(sortedelts))
+
+
+class ListIterator(metaclass=ListIteratorMeta):
     pass
 
 
